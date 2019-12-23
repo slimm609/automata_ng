@@ -3,6 +3,7 @@ import os
 import re
 import sys
 import yaml
+import boto3
 
 from pathlib import Path
 from automatagl.helpers.gitlab_operations import GitlabServerConfig, GitlabGroupConfig
@@ -79,7 +80,15 @@ class ConfigOps:
 
         # Token information
         try:
-            token_info = self.gitlab_config['api_token']
+            if "SSM" in self.gitlab_config['api_token']:
+                gl_token = self.gitlab_config['api_token']
+                gl_ssm = boto3.client('ssm')
+                gl_data = gl_token.split(':')
+                gl_param = gl_data[1]
+                gl_parameter = gl_ssm.get_parameter(Name=param,WithDecryption=True)
+                token_info = gl_parameter['Parameter']['Value']
+            else:
+                token_info = self.gitlab_config['api_token']
         except KeyError:
             token_info = os.environ.get(self.api_token_env)
 
@@ -105,7 +114,7 @@ class ConfigOps:
             instance_project=self.gitlab_config['instance_list_project'],
             instance_file=self.gitlab_config['instance_file_list'],
         )
-    
+
     def get_github_config(self) -> GithubServerConfig:
         """
         Returns the Github configuration object for the GithubOps
@@ -113,7 +122,15 @@ class ConfigOps:
         """
         # Token information
         try:
-            token_info = self.github_config['api_token']
+            if "SSM" in self.github_config['api_token']:
+                gh_token = self.github_config['api_token']
+                gh_ssm = boto3.client('ssm')
+                gh_data = gh_token.split(':')
+                gh_param = gh_data[1]
+                gh_parameter = gh_ssm.get_parameter(Name=param,WithDecryption=True)
+                token_info = gh_parameter['Parameter']['Value']
+            else:
+                token_info = self.github_config['api_token']
         except KeyError:
             token_info = os.environ.get(self.api_token_env)
 
